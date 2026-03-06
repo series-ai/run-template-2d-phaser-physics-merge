@@ -37,6 +37,7 @@ export default class GameScene extends Phaser.Scene {
   private fruitIdCounter = 0;
   private merging = new Set<number>();
   private activeFruits: { body: MatterJS.BodyType; container: Phaser.GameObjects.Container }[] = [];
+  private dropGraceTimer = 0;
   // Container boundaries
   private readonly WALL_LEFT = 60;
   private readonly WALL_RIGHT = 660;
@@ -243,6 +244,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Drop the fruit
     this.spawnFruit(this.currentDropX, this.DROP_Y, tier, true);
+    this.dropGraceTimer = 1000; // 1s grace period before game-over checks resume
 
     // Cooldown before next drop
     this.time.delayedCall(500, () => {
@@ -297,6 +299,10 @@ export default class GameScene extends Phaser.Scene {
     }
 
     if (this.isGameOver) return;
+    if (this.dropGraceTimer > 0) {
+      this.dropGraceTimer -= this.game.loop.delta;
+      return;
+    }
     this.checkGameOver();
   }
 
