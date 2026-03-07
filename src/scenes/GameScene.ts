@@ -30,7 +30,7 @@ export default class GameScene extends Phaser.Scene {
   private gameOverLine!: Phaser.GameObjects.Line;
   private currentFruitTier = 0;
   private nextFruitTier = 0;
-  private currentDropX = 360;
+  private currentDropX = 290;
   private previewFruit!: Phaser.GameObjects.Container;
   private nextPreviewContainer!: Phaser.GameObjects.Container;
   private canDrop = true;
@@ -41,7 +41,7 @@ export default class GameScene extends Phaser.Scene {
   private dropGraceTimer = 0;
   // Container boundaries
   private readonly WALL_LEFT = 60;
-  private readonly WALL_RIGHT = 660;
+  private readonly WALL_RIGHT = 520;
   private readonly FLOOR_Y = 1480;
   private readonly GAME_OVER_Y = 200;
   private readonly DROP_Y = 120;
@@ -91,7 +91,7 @@ export default class GameScene extends Phaser.Scene {
     );
     // Floor
     this.matter.add.rectangle(
-      360, this.FLOOR_Y + wallThickness / 2,
+      (this.WALL_LEFT + this.WALL_RIGHT) / 2, this.FLOOR_Y + wallThickness / 2,
       this.WALL_RIGHT - this.WALL_LEFT + wallThickness, wallThickness,
       wallOptions
     );
@@ -113,27 +113,30 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private createUI(): void {
+    const containerMidX = (this.WALL_LEFT + this.WALL_RIGHT) / 2;
+    const sidebarX = (this.WALL_RIGHT + 720) / 2;
+
     // Score
-    this.scoreText = this.add.text(360, 40, 'Score: 0', {
+    this.scoreText = this.add.text(containerMidX, 40, 'Score: 0', {
       fontSize: '48px',
       color: '#333333',
       fontStyle: 'bold',
     }).setOrigin(0.5);
 
     // Drop guide line
-    this.dropLine = this.add.line(0, 0, 360, this.DROP_Y, 360, this.FLOOR_Y, 0xAAAAAA, 0.3);
+    this.dropLine = this.add.line(0, 0, containerMidX, this.DROP_Y, containerMidX, this.FLOOR_Y, 0xAAAAAA, 0.3);
     this.dropLine.setOrigin(0, 0);
     this.dropLine.setLineWidth(1);
 
     // "Next" label
-    this.add.text(this.WALL_RIGHT + 40, 150, 'Next', {
+    this.add.text(sidebarX, 150, 'Next', {
       fontSize: '28px',
       color: '#666666',
       fontStyle: 'bold',
-    });
+    }).setOrigin(0.5);
 
     // Next fruit preview container
-    this.nextPreviewContainer = this.add.container(this.WALL_RIGHT + 70, 230);
+    this.nextPreviewContainer = this.add.container(sidebarX, 250);
   }
 
   private setupInput(): void {
@@ -155,10 +158,12 @@ export default class GameScene extends Phaser.Scene {
 
   private setupCollisions(): void {
     this.matter.world.on('collisionstart', (_event: Phaser.Physics.Matter.Events.CollisionStartEvent, bodyA: MatterJS.BodyType, bodyB: MatterJS.BodyType) => {
-      const fruitA = bodyA as FruitBody;
-      const fruitB = bodyB as FruitBody;
+      // Resolve to parent body in case Matter.js passes inner parts
+      const fruitA = (bodyA.parent || bodyA) as FruitBody;
+      const fruitB = (bodyB.parent || bodyB) as FruitBody;
 
       if (fruitA.fruitTier === undefined || fruitB.fruitTier === undefined) return;
+      if (fruitA === fruitB) return;
       if (fruitA.fruitTier !== fruitB.fruitTier) return;
       if (fruitA.fruitTier >= FRUITS.length - 1) return; // watermelon can't merge further
 
@@ -315,7 +320,7 @@ export default class GameScene extends Phaser.Scene {
   private checkGameOver(): void {
     const bodies = this.matter.world.getAllBodies();
     for (const body of bodies) {
-      const fb = body as FruitBody;
+      const fb = (body.parent || body) as FruitBody;
       if (fb.fruitTier === undefined) continue;
       if (fb.isStatic) continue;
 
