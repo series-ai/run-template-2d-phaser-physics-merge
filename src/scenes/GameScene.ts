@@ -28,6 +28,7 @@ export default class GameScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text;
   private dropLine!: Phaser.GameObjects.Line;
   private gameOverLine!: Phaser.GameObjects.Line;
+  private currentFruitTier = 0;
   private nextFruitTier = 0;
   private currentDropX = 360;
   private previewFruit!: Phaser.GameObjects.Container;
@@ -62,6 +63,7 @@ export default class GameScene extends Phaser.Scene {
     this.setupInput();
     this.setupCollisions();
 
+    this.currentFruitTier = this.getRandomDropTier();
     this.nextFruitTier = this.getRandomDropTier();
     this.spawnPreview();
     this.updateNextPreview();
@@ -197,7 +199,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private spawnPreview(): void {
-    const tier = this.nextFruitTier;
+    const tier = this.currentFruitTier;
     const fruit = FRUITS[tier];
     this.previewFruit = this.createFruitVisual(fruit.radius, fruit.color, fruit.emoji);
     this.previewFruit.setPosition(this.currentDropX, this.DROP_Y);
@@ -206,7 +208,6 @@ export default class GameScene extends Phaser.Scene {
 
   private updateNextPreview(): void {
     this.nextPreviewContainer.removeAll(true);
-    this.nextFruitTier = this.getRandomDropTier();
     const fruit = FRUITS[this.nextFruitTier];
     const visual = this.createFruitVisual(fruit.radius * 0.6, fruit.color, fruit.emoji);
     this.nextPreviewContainer.add(visual);
@@ -235,7 +236,7 @@ export default class GameScene extends Phaser.Scene {
   private dropFruit(): void {
     this.canDrop = false;
 
-    const tier = this.nextFruitTier;
+    const tier = this.currentFruitTier;
 
     // Remove preview
     if (this.previewFruit) {
@@ -245,6 +246,10 @@ export default class GameScene extends Phaser.Scene {
     // Drop the fruit
     this.spawnFruit(this.currentDropX, this.DROP_Y, tier, true);
     this.dropGraceTimer = 1000; // 1s grace period before game-over checks resume
+
+    // Promote next → current, pick a new next
+    this.currentFruitTier = this.nextFruitTier;
+    this.nextFruitTier = this.getRandomDropTier();
 
     // Cooldown before next drop
     this.time.delayedCall(500, () => {
