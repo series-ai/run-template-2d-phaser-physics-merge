@@ -170,27 +170,28 @@ export default class GameScene extends Phaser.Scene {
       const newTier = fruitA.fruitTier + 1;
       const midX = (fruitA.position.x + fruitB.position.x) / 2;
       const midY = (fruitA.position.y + fruitB.position.y) / 2;
-
-      // Remove old fruits
+      const idA = fruitA.fruitId;
+      const idB = fruitB.fruitId;
       const goA = fruitA.gameObject;
       const goB = fruitB.gameObject;
-      this.matter.world.remove(fruitA);
-      this.matter.world.remove(fruitB);
-      goA?.destroy();
-      goB?.destroy();
 
-      // Spawn merged fruit
-      this.spawnFruit(midX, midY, newTier, false);
+      // Defer removal to after the physics step
+      this.time.delayedCall(0, () => {
+        this.matter.world.remove(fruitA);
+        this.matter.world.remove(fruitB);
+        goA?.destroy();
+        goB?.destroy();
 
-      // Update score
-      this.score += FRUITS[newTier].points;
-      this.scoreText.setText(`Score: ${this.score}`);
+        // Spawn merged fruit
+        this.spawnFruit(midX, midY, newTier, false);
 
-      // Flash effect
-      this.cameras.main.flash(100, 255, 255, 200, false);
+        // Update score
+        this.score += FRUITS[newTier].points;
+        this.scoreText.setText(`Score: ${this.score}`);
 
-      this.merging.delete(fruitA.fruitId);
-      this.merging.delete(fruitB.fruitId);
+        this.merging.delete(idA);
+        this.merging.delete(idB);
+      });
     });
   }
 
