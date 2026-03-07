@@ -157,46 +157,45 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private setupCollisions(): void {
-    this.matter.world.on('collisionstart', (_event: Phaser.Physics.Matter.Events.CollisionStartEvent, bodyA: MatterJS.BodyType, bodyB: MatterJS.BodyType) => {
-      // Resolve to parent body in case Matter.js passes inner parts
-      const fruitA = (bodyA.parent || bodyA) as FruitBody;
-      const fruitB = (bodyB.parent || bodyB) as FruitBody;
+    this.matter.world.on('collisionstart', (event: Phaser.Physics.Matter.Events.CollisionStartEvent) => {
+      for (const pair of event.pairs) {
+        const fruitA = (pair.bodyA.parent || pair.bodyA) as FruitBody;
+        const fruitB = (pair.bodyB.parent || pair.bodyB) as FruitBody;
 
-      if (fruitA.fruitTier === undefined || fruitB.fruitTier === undefined) return;
-      if (fruitA === fruitB) return;
-      if (fruitA.fruitTier !== fruitB.fruitTier) return;
-      if (fruitA.fruitTier >= FRUITS.length - 1) return; // watermelon can't merge further
+        if (fruitA.fruitTier === undefined || fruitB.fruitTier === undefined) continue;
+        if (fruitA === fruitB) continue;
+        if (fruitA.fruitTier !== fruitB.fruitTier) continue;
+        if (fruitA.fruitTier >= FRUITS.length - 1) continue;
 
-      // Prevent double-merging
-      if (this.merging.has(fruitA.fruitId) || this.merging.has(fruitB.fruitId)) return;
-      this.merging.add(fruitA.fruitId);
-      this.merging.add(fruitB.fruitId);
+        // Prevent double-merging
+        if (this.merging.has(fruitA.fruitId) || this.merging.has(fruitB.fruitId)) continue;
+        this.merging.add(fruitA.fruitId);
+        this.merging.add(fruitB.fruitId);
 
-      const newTier = fruitA.fruitTier + 1;
-      const midX = (fruitA.position.x + fruitB.position.x) / 2;
-      const midY = (fruitA.position.y + fruitB.position.y) / 2;
-      const idA = fruitA.fruitId;
-      const idB = fruitB.fruitId;
-      const goA = fruitA.gameObject;
-      const goB = fruitB.gameObject;
+        const newTier = fruitA.fruitTier + 1;
+        const midX = (fruitA.position.x + fruitB.position.x) / 2;
+        const midY = (fruitA.position.y + fruitB.position.y) / 2;
+        const idA = fruitA.fruitId;
+        const idB = fruitB.fruitId;
+        const goA = fruitA.gameObject;
+        const goB = fruitB.gameObject;
 
-      // Defer removal to after the physics step
-      this.time.delayedCall(0, () => {
-        this.matter.world.remove(fruitA);
-        this.matter.world.remove(fruitB);
-        goA?.destroy();
-        goB?.destroy();
+        // Defer removal to after the physics step
+        this.time.delayedCall(0, () => {
+          this.matter.world.remove(fruitA);
+          this.matter.world.remove(fruitB);
+          goA?.destroy();
+          goB?.destroy();
 
-        // Spawn merged fruit
-        this.spawnFruit(midX, midY, newTier, false);
+          this.spawnFruit(midX, midY, newTier, false);
 
-        // Update score
-        this.score += FRUITS[newTier].points;
-        this.scoreText.setText(`Score: ${this.score}`);
+          this.score += FRUITS[newTier].points;
+          this.scoreText.setText(`Score: ${this.score}`);
 
-        this.merging.delete(idA);
-        this.merging.delete(idB);
-      });
+          this.merging.delete(idA);
+          this.merging.delete(idB);
+        });
+      }
     });
   }
 
