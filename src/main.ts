@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import GameScene from './scenes/GameScene';
+import { LAYOUT } from './config';
 import './style.css';
 import RundotGameAPI from "@series-inc/rundot-game-sdk/api";
 
@@ -7,8 +8,8 @@ async function bootstrap(): Promise<void> {
   try {
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
-      width: 720,
-      height: 1560,
+      width: LAYOUT.GAME_WIDTH,
+      height: LAYOUT.GAME_HEIGHT,
       parent: "app",
       backgroundColor: "#FFF8DC",
       scene: GameScene,
