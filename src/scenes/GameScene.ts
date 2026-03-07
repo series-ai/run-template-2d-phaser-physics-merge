@@ -38,10 +38,14 @@ export default class GameScene extends Phaser.Scene {
       this.scoreText.setText(`Score: ${this.score}`);
     });
 
-    this.currentFruitTier = this.fruits.getRandomDropTier();
-    this.nextFruitTier = this.fruits.getRandomDropTier();
-    this.spawnPreview();
-    this.updateNextPreview();
+    this.canDrop = false;
+    this.fruits.loadAssets().then(() => {
+      this.currentFruitTier = this.fruits.getRandomDropTier();
+      this.nextFruitTier = this.fruits.getRandomDropTier();
+      this.spawnPreview();
+      this.updateNextPreview();
+      this.canDrop = true;
+    });
   }
 
   private createContainer(): void {

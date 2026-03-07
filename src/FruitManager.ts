@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
+import RundotGameAPI from '@series-inc/rundot-game-sdk/api';
 import { FRUITS, MAX_DROP_TIER, LAYOUT } from './config';
+
+const CIRCLE_TEXTURE_KEY = 'fruit-circle';
 
 export interface FruitBody extends MatterJS.BodyType {
   gameObject: Phaser.GameObjects.Container;
@@ -17,9 +20,26 @@ export class FruitManager {
   private idCounter = 0;
   private merging = new Set<number>();
   private activeFruits: ActiveFruit[] = [];
+  private textureLoaded = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
+  }
+
+  async loadAssets(): Promise<void> {
+    const blob = await RundotGameAPI.cdn.fetchAsset('circle.png');
+    const blobUrl = URL.createObjectURL(blob);
+    RundotGameAPI.log(`[FruitManager] Fetched circle.png from CDN, blob size: ${blob.size}`);
+
+    return new Promise((resolve) => {
+      this.scene.load.image(CIRCLE_TEXTURE_KEY, blobUrl);
+      this.scene.load.once('complete', () => {
+        URL.revokeObjectURL(blobUrl);
+        this.textureLoaded = true;
+        resolve();
+      });
+      this.scene.load.start();
+    });
   }
 
   reset(): void {
@@ -35,12 +55,18 @@ export class FruitManager {
   createFruitVisual(radius: number, color: number, emoji: string): Phaser.GameObjects.Container {
     const container = this.scene.add.container(0, 0);
 
-    const circle = this.scene.add.graphics();
-    circle.fillStyle(color, 1);
-    circle.fillCircle(0, 0, radius);
-    circle.fillStyle(0xFFFFFF, 0.3);
-    circle.fillCircle(-radius * 0.25, -radius * 0.25, radius * 0.35);
-    container.add(circle);
+    if (this.textureLoaded) {
+      const sprite = this.scene.add.image(0, 0, CIRCLE_TEXTURE_KEY);
+      const diameter = radius * 2;
+      sprite.setDisplaySize(diameter, diameter);
+      sprite.setTint(color);
+      container.add(sprite);
+    } else {
+      const circle = this.scene.add.graphics();
+      circle.fillStyle(color, 1);
+      circle.fillCircle(0, 0, radius);
+      container.add(circle);
+    }
 
     const emojiSize = Math.max(16, Math.floor(radius * 0.8));
     const label = this.scene.add.text(0, 0, emoji, {
