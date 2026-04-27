@@ -1,7 +1,11 @@
 import Phaser from 'phaser';
+import RundotGameAPI from '@series-inc/rundot-game-sdk/api';
 
 export class GameOverOverlay {
-  static show(scene: Phaser.Scene, score: number): void {
+  static show(scene: Phaser.Scene, score: number, drops: number): void {
+    RundotGameAPI.analytics.recordCustomEvent('game_over', { score, drops });
+    RundotGameAPI.analytics.trackFunnelStep(4, 'game_over', 'session', 1);
+
     const overlay = scene.add.rectangle(360, 780, 720, 1560, 0x000000, 0.5);
     overlay.setDepth(100);
 

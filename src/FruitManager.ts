@@ -21,6 +21,8 @@ export class FruitManager {
   private merging = new Set<number>();
   private activeFruits: ActiveFruit[] = [];
   private textureLoaded = false;
+  private firstMergeFired = false;
+  private tier5Fired = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -46,6 +48,8 @@ export class FruitManager {
     this.idCounter = 0;
     this.merging.clear();
     this.activeFruits = [];
+    this.firstMergeFired = false;
+    this.tier5Fired = false;
   }
 
   getRandomDropTier(): number {
@@ -149,7 +153,20 @@ export class FruitManager {
           goB?.destroy();
 
           this.spawnFruit(midX, midY, newTier, false);
-          onScore(FRUITS[newTier].points);
+          const points = FRUITS[newTier].points;
+          onScore(points);
+
+          if (!this.firstMergeFired) {
+            this.firstMergeFired = true;
+            RundotGameAPI.analytics.recordCustomEvent('first_merge');
+            RundotGameAPI.analytics.trackFunnelStep(2, 'first_merge', 'session', 1);
+          }
+          RundotGameAPI.analytics.recordCustomEvent('fruit_merged', { result_tier: newTier, points });
+          if (!this.tier5Fired && newTier >= 5) {
+            this.tier5Fired = true;
+            RundotGameAPI.analytics.recordCustomEvent('tier_5_reached');
+            RundotGameAPI.analytics.trackFunnelStep(3, 'tier_5_reached', 'session', 1);
+          }
 
           this.merging.delete(idA);
           this.merging.delete(idB);

@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
+import RundotGameAPI from '@series-inc/rundot-game-sdk/api';
 import { FRUITS, LAYOUT } from '../config';
 import { FruitManager } from '../FruitManager';
 import { GameOverOverlay } from '../GameOverOverlay';
 
 export default class GameScene extends Phaser.Scene {
   private score = 0;
+  private drops = 0;
   private scoreText!: Phaser.GameObjects.Text;
   private dropLine!: Phaser.GameObjects.Line;
   private currentFruitTier = 0;
@@ -16,6 +18,7 @@ export default class GameScene extends Phaser.Scene {
   private isGameOver = false;
   private dropGraceTimer = 0;
   private fruits!: FruitManager;
+  private firstDropFired = false;
 
   constructor() {
     super("game");
@@ -23,9 +26,11 @@ export default class GameScene extends Phaser.Scene {
 
   create(): void {
     this.score = 0;
+    this.drops = 0;
     this.isGameOver = false;
     this.canDrop = true;
     this.dropGraceTimer = 0;
+    this.firstDropFired = false;
 
     this.fruits = new FruitManager(this);
     this.fruits.reset();
@@ -45,6 +50,7 @@ export default class GameScene extends Phaser.Scene {
       this.spawnPreview();
       this.updateNextPreview();
       this.canDrop = true;
+      RundotGameAPI.analytics.recordCustomEvent('assets_loaded');
     });
   }
 
@@ -135,8 +141,17 @@ export default class GameScene extends Phaser.Scene {
       this.previewFruit.destroy();
     }
 
-    this.fruits.spawnFruit(this.currentDropX, LAYOUT.DROP_Y, this.currentFruitTier, true);
+    const droppedTier = this.currentFruitTier;
+    this.fruits.spawnFruit(this.currentDropX, LAYOUT.DROP_Y, droppedTier, true);
     this.dropGraceTimer = 1000;
+    this.drops += 1;
+
+    if (!this.firstDropFired) {
+      this.firstDropFired = true;
+      RundotGameAPI.analytics.recordCustomEvent('first_drop');
+      RundotGameAPI.analytics.trackFunnelStep(1, 'first_drop', 'session', 1);
+    }
+    RundotGameAPI.analytics.recordCustomEvent('fruit_dropped', { tier: droppedTier });
 
     this.currentFruitTier = this.nextFruitTier;
     this.nextFruitTier = this.fruits.getRandomDropTier();
@@ -164,7 +179,7 @@ export default class GameScene extends Phaser.Scene {
       if (this.previewFruit) {
         this.previewFruit.destroy();
       }
-      GameOverOverlay.show(this, this.score);
+      GameOverOverlay.show(this, this.score, this.drops);
     }
   }
 }
